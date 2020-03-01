@@ -1,0 +1,30 @@
+Deploy container to minikube:
+1. Connect to minikube docker daemon: 
+    On windows create dockerx.bat file with the folloving content:
+    docker ^
+        --tlsverify ^
+        -H=192.168.223.73:2376 ^
+        --tlscacert=C:\Users\isukh\.minikube\ca.pem ^
+        --tlscert=C:\Users\isukh\.minikube\cert.pem ^
+        --tlskey=C:\Users\isukh\.minikube\key.pem %*
+    The add the directory which include the bat file to the system environment variable "path"
+    The address of the minikube's docker daemon can be found using "minikube docker-env" command
+2. Run "dockerx build -t project-name ." within the project directory which contain the docker file.
+    It builds the image and adds it to the minikubes docker repository. Check wheather it worked by running "dockerx images"
+3. If you have a docker-compose.yml file already you can convert it to a kubernetes resource specification using the "kompose" tool.
+    On windows: install kompose using "choco install kubernetes-kompose"
+
+    The switch to the folder containing your docker-compose.yml file and run "kompose convert". It will create multiple resource definition files.
+    You can merge them into one single file preceiving the service order.
+
+    OR write resource specifications on your own. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/
+4. Run "kubectl apply -f object-spec.yaml" to create a kubernetes resource
+    - You may need to add "imagePullPolicy: Never" to the Deployment description under spec->template->spec->containers in order to forbidd 
+    minikube to seek for your private container image on public registry. With this option set to "Never" it will pick the image from the local
+    registry (which we added in Step 2.) directly.
+    - If you would like to access your container deployment from outside of minikube make sure you:
+        - Defined port mapping betwenn your container and minikube environment under spec->ports->port/targetPort
+        - Declared "NodePort" as a type for your service. You can check whether everything got configured as expected using following commands:
+            - kubectl get all
+            - kubectl describe pod <pod_name>
+            - minikube dashboard
